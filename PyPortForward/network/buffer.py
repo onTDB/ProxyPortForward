@@ -6,9 +6,9 @@ def attach_info(client_id, connection_id, buffer):
     '''
     get the destination information of a connection
     '''
-    info = json.dumps({"client_id": client_id, "connection_id": connection_id}).encode()
-    info += b'\x00' * (100 - len(info))
-    return info + buffer
+    info = {"client_id": client_id, "conn_id": connection_id}
+    buffer = json.dumps(info).encode() + b'\x00' * (100 - len(json.dumps(info))) + buffer
+    return info, buffer
 
 def parse_info(buffer):
     '''
