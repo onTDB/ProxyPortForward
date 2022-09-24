@@ -13,6 +13,7 @@ def handle(buffer, direction, client_id, connection_id, connections):
     client_ip, client_port = connections[connection_id]["clients"][client_id].getsockname()
     if direction:#connections[connection_id]["server"]["name"]
         logging.debug(f"{client_ip}:{client_port} ({client_id}) -> {connections[connection_id]['server']['name']} ({connection_id}) :: {len(buffer)} bytes")
+        info = ppf.network.parse_info(buffer)
     else:
         logging.debug(f"{client_ip}:{client_port} ({client_id}) <- {connections[connection_id]['server']['name']} ({connection_id}) :: {len(buffer)} bytes")
     return info, buffer
@@ -44,7 +45,8 @@ def to_server(client_id, connection_id, connections):
         try:
             buffer = client.recv(4096)
             if len(buffer) > 0:
-                server.send(handle(buffer, True, client_id, connection_id, connections))
+                info, buffer = handle(buffer, True, client_id, connection_id, connections)
+                server.send(buffer)
         except Exception as e:
             logging.error(repr(e))
             break
@@ -58,7 +60,8 @@ def to_client(connection_id, connections):
         try:
             buffer = server.recv(4096)
             if len(buffer) > 0:
-                handle(buffer, direction, client_id, connection_id, connections)
+                info, buffer = handle(buffer, direction, client_id, connection_id, connections)
+                connections[connection_id]["clients"][info["client_id"]].send(buffer)
         except Exception as e:
             logging.error(repr(e))
             break
@@ -66,3 +69,16 @@ def to_client(connection_id, connections):
     server.close()
     del(connections[connection_id])
 
+def to_origin(connection_id, proxy_id, connections):
+    proxy = connections["proxy"][proxy_id]
+    while True:
+        try:
+            buffer = server.recv(4096)
+            if len(buffer) > 0:
+                handle(buffer, direction, client_id, connection_id, connections)
+        except Exception as e:
+            logging.error(repr(e))
+            break
+    logging.warning(f"Closing connection from {connections[connection_id]['server']['name']} ({connection_id})! ")
+    server.close()
+    del(connections[connection_id])
