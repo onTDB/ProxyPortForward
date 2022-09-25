@@ -5,18 +5,69 @@ import PyPortForward as ppf
 
 connections = {}
 
-def handle(buffer, direction, client_id, connection_id, connections):
+def handle_proxy(buffer, direction, src, client_id, server_name, connection_id):
     '''
     intercept the data flows between local port and the target port
     '''
 
-    client_ip, client_port = connections[connection_id]["clients"][client_id].getsockname()
+    src_ip, src_port = src.getsockname()
     if direction:#connections[connection_id]["server"]["name"]
-        logging.debug(f"{client_ip}:{client_port} ({client_id}) -> {connections[connection_id]['server']['name']} ({connection_id}) :: {len(buffer)} bytes")
-        info = ppf.network.parse_info(buffer)
+        logging.info(f"{src_ip}:{src_port} ({client_id}) -> {server_name} ({connection_id}) :: {len(buffer)} bytes")
+        info, buffer = ppf.network.attach_info(client_id, connection_id, buffer)
     else:
-        logging.debug(f"{client_ip}:{client_port} ({client_id}) <- {connections[connection_id]['server']['name']} ({connection_id}) :: {len(buffer)} bytes")
+        logging.info(f"{src_ip}:{src_port} ({client_id}) <- {server_name} ({connection_id}) :: {len(buffer)} bytes")
+        info, buffer = ppf.network.parse_info(buffer)
     return info, buffer
+
+def handle_server(buffer, direction, client_id, origin, connection_id, proxy_name):
+    '''
+    intercept the data flows between local port and the target port
+    '''
+    origin_ip, origin_port = origin.getsockname()
+    if direction:
+        logging.debug(f"{proxy_name} ({client_id}) -> {origin_ip}:{origin_port} ({connection_id}) :: {len(buffer)} bytes")
+        info, buffer = ppf.network.parse_info(buffer)
+    else:
+        logging.debug(f"{proxy_name} ({client_id}) <- {origin_ip}:{origin_port} ({connection_id}) :: {len(buffer)} bytes")
+        info, buffer = ppf.network.attach_info(client_id, connection_id, buffer)
+    return info, buffer
+
+def transfer_info(src, dst, client_id, server_name, connection_id, direction):
+    '''
+    Pass with information to the destination
+    '''
+    src_ip, src_port = src.getsockname()
+    dst_ip, dst_port = dst.getsockname()
+    while True:
+        try:
+            buffer = src.recv(4096)
+            if len(buffer) > 0:
+                if direction:
+                    info, buffer = handle_proxy(buffer, direction, src, client_id, server_name, connection_id)
+                else:
+                    info, buffer = handle_server(buffer, direction, client_id, src, connection_id, server_name)
+                dst.send(buffer)
+        except Exception as e:
+            logging.error(repr(e))
+            break
+    logging.warning(f"Closing connect {src_ip}:{src_port}! ")
+    src.close()
+    ppf.commands.send_command(command="close", connection_id=connection_id, client_id=client_id)
+
+def transfer_raw(src, dst, client_id, server_name, connection_id, direction):
+    src_ip, src_port = src.getsockname()
+    dst_ip, dst_port = dst.getsockname()
+    while True:
+        try:
+            buffer = src.recv(4096)
+            if len(buffer) > 0:
+                if direction:
+                    info, buffer = handle_server(buffer, direction, client_id, dst, connection_id, server_name)
+                else:
+                    info, buffer = handle_proxy(buffer, direction, src, client_id, server_name, connection_id)
+        except Exception as e:
+            logging.error(repr(e))
+            break
 
 def transfer(connection_id, src, direction, connections):
     dst = connections[connection_id]["server"]["socket"]
@@ -53,6 +104,12 @@ def to_server(client_id, connection_id, connections):
     logging.warning(f"Closing connection from {client_ip, client_port} ({client_id})! ")
     client.close()
     del(connections[connection_id]["clients"][client_id])
+
+
+
+
+
+
 
 def to_client(connection_id, connections):
     server = connections[connection_id]["server"]["socket"]
