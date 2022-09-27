@@ -26,19 +26,18 @@ def server(host, port, debug):
 @main.command("client")
 @click.option("--server-host", type=str, help="The host of the server")
 @click.option("--server-port", type=int, help="The port of the server")
-@click.option("--listen-host", type=str, help="The host of the local server")
-@click.option("--listen-port", type=int, help="The port of the local server")
-def client(server_host, server_port, listen_host, listen_port):
-    ppf.commands.client(server_host, server_port, listen_host, listen_port)
+@click.option("--login", type=str, help="The login to the server")
+def client(server_host, server_port, login):
+    ppf.commands.client(server_host, server_port, login)
 
 @main.command("forward")
-@click.option("--listen-host", type=str, help="The host of the local server")
-@click.option("--listen-port", type=int, help="The port of the local server")
-@click.option("--connect-host", type=str, help="The host of the remote server")
-@click.option("--connect-port", type=int, help="The port of the remote server")
-def forward(listen_host, listen_port, connect_host, connect_port):
-    ppf.commands.forward(listen_host, listen_port, connect_host, connect_port)
+@click.option("--listen-host", default="0.0.0.0", type=str, help="The host of the local server")
+@click.option("--listen-port", type=int, help="The port of the local server", required=True)
+@click.option("--connect-host", type=str, help="The host of the remote server", required=True)
+@click.option("--connect-port", type=int, help="The port of the remote server", required=True)
+@click.option("--debug", default=False, type=bool, help="Enable debug mode")
+def forward(listen_host, listen_port, connect_host, connect_port, debug):
+    ppf.commands.forward(listen_host, listen_port, connect_host, connect_port, debug)
 
 if __name__ == "__main__":
     main()
-

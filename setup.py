@@ -11,6 +11,9 @@ with open("PyPortForward/__main__.py", "r") as fh:
 install_requires = [
     "flask",
     "flask_cors",
+    "prompt_toolkit",
+    "Cx_Oracle",
+    "requests"
 ]
 
 setuptools.setup(
@@ -32,7 +35,7 @@ setuptools.setup(
     install_requires=install_requires,
     entry_points={
         'console_scripts': [
-            'PyPortForward = PyPortForward.__main__:main',
+            'ppf = PyPortForward.__main__:main',
         ],
     },
 )
