@@ -8,6 +8,11 @@ import PyPortForward as ppf
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/', methods=['GET'])
+def index():
+    return "PyPortForward Server\nHello World!"
+
+
 def server(host, port, debug):
     """
     PortForward Manager start point
