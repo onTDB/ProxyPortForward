@@ -13,7 +13,8 @@ install_requires = [
     "flask_cors",
     "prompt_toolkit",
     "Cx_Oracle",
-    "requests"
+    "requests",
+    "pycryptodome",
 ]
 
 setuptools.setup(

@@ -3,6 +3,7 @@ import PyPortForward.network
 import PyPortForward.ports
 import PyPortForward.users
 import PyPortForward.database
+import PyPortForward.security
 import PyPortForward.io
 import logging
 from prompt_toolkit import PromptSession

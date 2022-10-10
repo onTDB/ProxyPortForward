@@ -3,3 +3,4 @@ flask_cors
 prompt_toolkit
 cx_Oracle
 requests
+pycryptodome

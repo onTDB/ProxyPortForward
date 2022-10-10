@@ -51,7 +51,7 @@ def transfer(src, dst, direction):
     dst.close()
 
 
-def server(local_host, local_port, remote_host, remote_port, debug):
+def forward(local_host, local_port, remote_host, remote_port, debug):
     ppf.logger.setLevel(logging.DEBUG if debug else logging.INFO)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -75,5 +75,7 @@ def server(local_host, local_port, remote_host, remote_port, debug):
             r.daemon = True
             s.start()
             r.start()
+        except KeyboardInterrupt:
+            break
         except Exception as e:
             logging.error(repr(e))
