@@ -52,7 +52,7 @@ BEGIN
     INSERT INTO pyportforward.origin_history(userid, connectionid, connectionip, connectionport, created_at, updated_at)
     VALUES(:OLD.userid, :OLD.connectionid, :OLD.connectionip, :OLD.connectionport, :OLD.created_at, SYSDATE);
 END;
-
+/
 
 
 --SELECT connectionid FROM pyportforward.origin_history A WHERE updated_at > SYSDATE - 1;
