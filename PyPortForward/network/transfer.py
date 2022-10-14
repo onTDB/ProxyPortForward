@@ -5,8 +5,6 @@ import logging
 
 import PyPortForward as ppf
 
-connections = {}
-
 """
 PROXY
 {
@@ -52,20 +50,21 @@ SERVER
     }
 }
 """
+# connections => ppf.connections
 
 def handle_proxy(buffer, direction, src, client_id, server_name, connection_id): #direction: true ==> goto origin server
     '''
     intercept the data flows between local port and the target port
     '''
     src_ip, src_port = src.getsockname()
-    if direction:#connections[connection_id]["server"]["name"]
+    if direction:#ppf.connections[connection_id]["server"]["name"]
         info, buffer = ppf.network.attach_info(client_id, connection_id, buffer)
         logging.info(f"{src_ip}:{src_port} ({client_id}) -> {server_name} ({connection_id}) :: {len(buffer)} bytes")
     else:
         info, buffer = ppf.network.parse_info(buffer)
         connection_id = info["conn_id"]
         client_id = info["client_id"]
-        src_ip, src_port = connections["origin"][connection_id]["clients"][client_id].getsockname()
+        src_ip, src_port = ppf.connections["origin"][connection_id]["clients"][client_id].getsockname()
         logging.info(f"{src_ip}:{src_port} ({client_id}) <- {server_name} ({connection_id}) :: {len(buffer)} bytes")
     return info, buffer
 
@@ -78,7 +77,7 @@ def handle_server(buffer, direction, client_id, origin, connection_id, proxy_nam
         info, buffer = ppf.network.parse_info(buffer)
         connection_id = info["conn_id"]
         client_id = info["client_id"]
-        origin_ip, origin_port = connections["origin"][connection_id]["socket"].getsockname()
+        origin_ip, origin_port = ppf.connections["origin"][connection_id]["socket"].getsockname()
         logging.debug(f"{proxy_name} ({client_id}) -> {origin_ip}:{origin_port} ({connection_id}) :: {len(buffer)} bytes")
     else:
         info, buffer = ppf.network.attach_info(client_id, connection_id, buffer)
@@ -110,10 +109,10 @@ def transfer_info(src, dst, client_id, server_name, connection_id, direction):
                 break
             break
     if direction:
-        for sock in connections["origin"][connection_id]["clients"].values():
+        for sock in ppf.connections["origin"][connection_id]["clients"].values():
             sock.close()
     else:
-        for sock in connections["origin"].values():
+        for sock in ppf.connections["origin"].values():
             sock.close()
 
 def transfer_raw(src, src_name, direction):
@@ -129,27 +128,27 @@ def transfer_raw(src, src_name, direction):
 
                 if info["mode"] == "OPEN" and direction:
                     newconn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    newconn.connect((connections["origin"][info["conn_id"]]["ip"], connections["origin"][info["conn_id"]]["port"]))
-                    connections["origin"][info["conn_id"]]["clients"][info["client_id"]] = newconn
-                    logging.info(f"[ESTABLISHING] {src_name} {info['client_id']} -> {connections['origin'][info['conn_id']]['ip']}:{connections['origin'][info['conn_id']]['port']} ({info['conn_id']})")
+                    newconn.connect((ppf.connections["origin"][info["conn_id"]]["ip"], ppf.connections["origin"][info["conn_id"]]["port"]))
+                    ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]] = newconn
+                    logging.info(f"[ESTABLISHING] {src_name} {info['client_id']} -> {ppf.connections['origin'][info['conn_id']]['ip']}:{ppf.connections['origin'][info['conn_id']]['port']} ({info['conn_id']})")
 
                     newthr = threading.Thread(target=transfer_info, args=(newconn, proxy, info["client_id"], proxy_name, info["conn_id"], False))
                     newthr.daeomon = True
                     newthr.start()
-                    connections["origin"][info["conn_id"]]["clientthreads"][info["client_id"]] = newthr
+                    ppf.connections["origin"][info["conn_id"]]["clientthreads"][info["client_id"]] = newthr
                     continue
                 elif info["mode"] == "CLOSE":
                     logging.warning(f"Closing connect {proxy_ip}:{proxy_port}! (Client Request)")
-                    connections["origin"][info["conn_id"]]["clients"][info["client_id"]].close()
-                    del(connections["origin"][info["conn_id"]]["clients"][info["client_id"]])
-                    del(connections["origin"][info["conn_id"]]["clientthreads"][info["client_id"]])
+                    ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]].close()
+                    del(ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]])
+                    del(ppf.connections["origin"][info["conn_id"]]["clientthreads"][info["client_id"]])
                     collect()
                     continue
                 elif info["mode"] == "DATA":
                     if direction:
-                        connections["origin"][info["conn_id"]]["clients"][info["client_id"]].send(buffer)
+                        ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]].send(buffer)
                     else:
-                        connections["origin"][info["conn_id"]]["server"]["socket"].send(buffer)
+                        ppf.connections["origin"][info["conn_id"]]["server"]["socket"].send(buffer)
                 else:
                     logging.error(f"Unknown mode {info['mode']} from {info['client_id']}!")
         except Exception as e:

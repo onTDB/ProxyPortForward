@@ -9,7 +9,6 @@ UUID: 32 bytes
 mode: OPEN, CLOSE, DATA
 
 """
-
 dtlen = 120
 
 def attach_info(client_id, connection_id, buffer):

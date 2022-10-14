@@ -7,6 +7,7 @@ import PyPortForward as ppf
 
 app = Flask(__name__)
 CORS(app)
+logging.getLogger('werkzeug').handlers = [ppf.PromptHandler()]
 
 @app.route('/', methods=['GET'])
 def index():

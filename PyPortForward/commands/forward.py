@@ -19,9 +19,7 @@ import threading
 
 import PyPortForward as ppf
 
-format = '%(asctime)s - %(filename)s:%(lineno)d - %(levelname)s: %(message)s'
-ppf.logger.basicConfig(level=logging.INFO, format=format)
-
+logging = ppf.logger
 
 def handle(buffer, direction, src_address, src_port, dst_address, dst_port):
     '''
@@ -52,7 +50,7 @@ def transfer(src, dst, direction):
 
 
 def forward(local_host, local_port, remote_host, remote_port, debug):
-    ppf.logger.setLevel(logging.DEBUG if debug else logging.INFO)
+    logging.setLevel(logging.DEBUG if debug else logging.INFO)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((local_host, local_port))
@@ -62,7 +60,7 @@ def forward(local_host, local_port, remote_host, remote_port, debug):
     while True:
         try:
             src_socket, src_address = server_socket.accept()
-        except KetboardInterrupt:
+        except KeyboardInterrupt:
             break
         logging.info(f"[Establishing] {src_address} -> {local_host, local_port} -> ? -> {remote_host, remote_port}")
         try:
