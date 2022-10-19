@@ -11,11 +11,14 @@ mode: OPEN, CLOSE, DATA
 """
 dtlen = 120
 
-def attach_info(client_id, connection_id, buffer):
+def attach_info(client_id, connection_id, mode, buffer):
     '''
     get the destination information of a connection
     '''
-    info = {"client_id": client_id, "conn_id": connection_id}
+    info = {"client_id": client_id, "conn_id": connection_id, "mode": mode}
+    if len(info) > dtlen:
+        ppf.logger.error("The length of the information is too long! {clientid}".format(clientid=client_id))
+        return None
     buffer = json.dumps(info).encode() + b'\x00' * (dtlen - len(json.dumps(info))) + buffer
     return info, buffer
 

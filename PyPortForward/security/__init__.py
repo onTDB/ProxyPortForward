@@ -1,4 +1,4 @@
-from pycryptodome.Cipher import AES
+from Crypto.Cipher import AES
 from uuid import UUID
 import base64
 

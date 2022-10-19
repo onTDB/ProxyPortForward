@@ -119,7 +119,7 @@ def transfer_raw(src, src_name, direction):
     src_ip, src_port = src.getsockname()
     while True:
         try:
-            buffer = proxy.recv(4096)
+            buffer = src.recv(4096)
             if len(buffer) > 0:
                 if direction: # Server -> Origin
                     info, buffer = handle_server(buffer, direction, None, src, None, src_name)
@@ -132,13 +132,13 @@ def transfer_raw(src, src_name, direction):
                     ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]] = newconn
                     logging.info(f"[ESTABLISHING] {src_name} {info['client_id']} -> {ppf.connections['origin'][info['conn_id']]['ip']}:{ppf.connections['origin'][info['conn_id']]['port']} ({info['conn_id']})")
 
-                    newthr = threading.Thread(target=transfer_info, args=(newconn, proxy, info["client_id"], proxy_name, info["conn_id"], False))
+                    newthr = Thread(target=transfer_info, args=(newconn, src, info["client_id"], src_name, info["conn_id"], False))
                     newthr.daeomon = True
                     newthr.start()
                     ppf.connections["origin"][info["conn_id"]]["clientthreads"][info["client_id"]] = newthr
                     continue
                 elif info["mode"] == "CLOSE":
-                    logging.warning(f"Closing connect {proxy_ip}:{proxy_port}! (Client Request)")
+                    logging.warning(f"Closing connect {src_ip}:{src_port}! (Client Request)")
                     ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]].close()
                     del(ppf.connections["origin"][info["conn_id"]]["clients"][info["client_id"]])
                     del(ppf.connections["origin"][info["conn_id"]]["clientthreads"][info["client_id"]])
@@ -154,7 +154,7 @@ def transfer_raw(src, src_name, direction):
         except Exception as e:
             logging.error(repr(e))
             # Check socket are closed
-            if proxy.fileno() == -1:
+            if src.fileno() == -1:
                 logging.critical(msg="Proxy socket is closed!")
                 break
             break
