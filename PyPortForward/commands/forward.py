@@ -20,6 +20,7 @@ import threading
 import PyPortForward as ppf
 
 logging = ppf.logger
+ShowData = False
 
 def handle(buffer, direction, src_address, src_port, dst_address, dst_port):
     '''
@@ -27,8 +28,12 @@ def handle(buffer, direction, src_address, src_port, dst_address, dst_port):
     '''
     if direction:
         logging.debug(f"{src_address, src_port} -> {dst_address, dst_port} {len(buffer)} bytes")
+        if ShowData:
+            logging.debug(buffer)
     else:
         logging.debug(f"{src_address, src_port} <- {dst_address, dst_port} {len(buffer)} bytes")
+        if ShowData:
+            logging.debug(buffer)
     return buffer
 
 
@@ -49,7 +54,7 @@ def transfer(src, dst, direction):
     dst.close()
 
 
-def forward(local_host, local_port, remote_host, remote_port):
+def forward(local_host, local_port, remote_host, remote_port, show_data):
     
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -57,6 +62,7 @@ def forward(local_host, local_port, remote_host, remote_port):
     server_socket.listen(0x40)
     logging.info(f"Server started {local_host, local_port}")
     logging.info(f"Connect to {local_host, local_port} to get the content of {remote_host, remote_port}")
+    ShowData = show_data
     while True:
         try:
             src_socket, src_address = server_socket.accept()
