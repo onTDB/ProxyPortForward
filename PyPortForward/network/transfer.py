@@ -12,8 +12,15 @@ PROXY
         "UUID": { # Connection_id
             "server": "UUID", # Server_id
             "clients": {
-                "UUID1": socket.socket(),
-                "UUID2": socket.socket()
+                "UUID1": {
+                    "socket": socket.socket(),
+                    "time": time.time()
+                },
+                "UUID2": {
+                    "socket": socket.socket(),
+                    "time": time.time()
+
+                }
             },
         }
     },
@@ -35,10 +42,6 @@ SERVER
             "clients": {
                 "UUID1": socket.socket(),
                 "UUID2": socket.socket()
-            },
-            "clientthreads": {
-                "UUID1": Thread(),
-                "UUID2": Thread()
             }
         }
     },
