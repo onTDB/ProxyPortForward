@@ -8,54 +8,107 @@ import PyPortForward as ppf
 """
 PROXY
 {
-    "origin": {
-        "UUID": { # Connection_id
-            "server": "UUID", # Server_id
-            "clients": {
-                "UUID1": {
-                    "socket": socket.socket(),
-                    "time": time.time()
+    "serverUUID": {
+        "master": socket.socket() or websockets.WebSocketServerProtocol(),
+        "ports": {
+            "PortUUID1": {
+                "clientUUID1": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
                 },
-                "UUID2": {
-                    "socket": socket.socket(),
-                    "time": time.time()
-
+                "clientUUID2": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
                 }
             },
-        }
-    },
-    "server": {
-        "UUID": { # Server_id
-            "name": "onTDB's Server 01",
-            "socket": socket.socket(),
-            "token": "UUID",
+            "PortUUID2": {
+                "clientUUID3": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
+                },
+                "clientUUID4": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
+                }
+            }
+        },
+        "portmap": {
+            "PortUUID1": 1234,
+            "PortUUID2": 9999
         }
     }
 }
 
+
 SERVER
 {
-    "origin": {
-        "UUID": {
-            "ip": "0.0.0.0",
-            "port": 1234,
-            "clients": {
-                "UUID1": socket.socket(),
-                "UUID2": socket.socket()
+    "proxyname": {
+        "master": socket.socket() or websockets.WebSocketServerProtocol(),
+        "ports": {
+            "PortUUID1": {
+                "clientUUID1": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
+                },
+                "clientUUID2": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
+                }
+            },
+            "PortUUID2": {
+                "clientUUID3": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
+                },
+                "clientUUID4": {
+                    "client": socket.socket(),
+                    "server": socket.socket() or websockets.WebSocketServerProtocol(),
+                }
             }
+        },
+        "portmap": {
+            "PortUUID1": 1234,
+            "PortUUID2": 9999
         }
-    },
-    "proxy": {
-        "name": "onTDB's Proxy 01",
-        "socket": socket.socket(),
-        "token": "128BIT",
-        "thread": Thread()
     }
 }
 """
 # connections => ppf.connections
 
-def handle_proxy(buffer, direction, src, client_id, server_name, connection_id): #direction: true ==> goto origin server
+async def server_to_client(sock):
+    """
+    transfer data from server to client
+    """
+    try:
+        while True:
+            buffer = await ppf.network.recv(sock)
+            if not buffer:
+                break
+            mode, info, buffer = ppf.network.parse_info(buffer)
+            if mode == "CLOSE":
+                break
+
+
+
+    except Exception as e:
+        logging.error(e)
+    finally:
+        sock.close()
+        collect()
+
+def client_to_server(sock):
+    """
+    CLIENT --> PROXY --> SERVER (SEND)
+    """
+    while True:
+        try:
+            buffer = sock.recv(4096)
+            if not buffer:
+                break
+            buffer = ppf.network.attach_info(buffer
+
+
+async def handle_proxy(buffer, direction, src, client_id, server_name, connection_id): #direction: true ==> goto origin server
     '''
     intercept the data flows between local port and the target port
     '''

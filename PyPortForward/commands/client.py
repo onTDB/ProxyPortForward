@@ -1,11 +1,13 @@
 import socket
+import websockets
 from tempfile import tempdir
 from threading import Thread
 import uuid
 
 import PyPortForward as ppf
 
-def client(server_host, server_port, login):
+def client(proxy, proxy_port, mode):
+    
     uid = uuid.uuid4().hex
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((server_host, server_port))
@@ -23,13 +25,38 @@ def client(server_host, server_port, login):
 
     pass
 
-def temp(sock):
-    while True:
-        data = sock.recv(4096)
-        if len(data) > 0:
-            ppf.logger.debug(data)
-        else:
-            break
-
-def send_command(command, client_id, connection_id):
-    pass
+def parse(proxy, proxy_port, mode):
+    if mode == "sock":
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if ":" in proxy:
+                sock.connect((proxy.split(":")[0], int(proxy.split(":")[1])))
+            else:
+                sock.connect((proxy, proxy_port))
+            return sock
+        except Exception as e:
+            ppf.logger.error(e)
+            raise e
+    elif mode == "ws":
+        try:
+            if ":" in proxy:
+                sock = websockets.connect(f"ws://{proxy}")
+            else:
+                sock = websockets.connect(f"ws://{proxy}:{proxy_port}")
+            return sock
+        except Exception as e:
+            ppf.logger.error(e)
+            raise e
+    elif mode == "wss":
+        try:
+            if ":" in proxy:
+                sock = websockets.connect(f"wss://{proxy}")
+            else:
+                sock = websockets.connect(f"wss://{proxy}:{proxy_port}")
+            return sock
+        except Exception as e:
+            ppf.logger.error(e)
+            raise e
+    else:
+        ppf.logger.error(f"Unknown mode {mode}")
+        raise e

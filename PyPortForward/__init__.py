@@ -13,11 +13,16 @@ formatter = logging.Formatter('%(levelname)s - [%(asctime)s] [%(filename)s:%(lin
 logger.handlers[0].setFormatter(formatter)
 logger.setLevel(logging.INFO)
 
+host = ""
+port = 5000
+mode = "sock"
+passwd = ""
+connections = {}
+
+
+import PyPortForward.types
 import PyPortForward.commands
 import PyPortForward.network
 import PyPortForward.ports
-import PyPortForward.users
-import PyPortForward.database
-import PyPortForward.security
+import PyPortForward.config
 
-connections = {}
