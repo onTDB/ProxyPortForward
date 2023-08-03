@@ -6,8 +6,9 @@ import logging
 DEFAULT_CONFIG = {
     "host": "proxy.example.com",
     "masterport": 5000,
+    "mastermode": "sock/ws/wss",
     "clientport": 5001,
-    "mode": "sock/ws/wss",
+    "clientmode": "sock/ws/wss",
     "debug": False,
     "logfile": "",
     "pass": "ANYPASSWORD"

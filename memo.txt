@@ -1,0 +1,116 @@
+[C] PROXY HELLO
+[P] CLIENT HELLO
+[C] VERSION PyPortForward v1.0-pre1
+[P] VERSION PyPortForward v1.0-pre2
+[C] PASS 123456789
+[P] PASS OK
+
+
+MASTER
+
+type 
+NEW - new port
+CLOSE - close connection
+ERR - error
+
+
+NEW
+{
+    "type": "NEW",
+    "port": 1234,
+    "uuid": "PortUUID1",
+    "client": "clientUUID1",
+    "request": "requestUUID"
+}
+
+
+"""
+PROXY
+{
+    "serverUUID": {
+        "master": socket.socket(),
+        "chiper": Cryptodome.Cipher.AES,
+        "ports": {
+            "PortUUID1": {
+                "clientUUID1": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                },
+                "clientUUID2": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                }
+            },
+            "PortUUID2": {
+                "clientUUID3": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                },
+                "clientUUID4": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                }
+            }
+        },
+        "portmap": {
+            "PortUUID1": {
+                "port": 1234,
+                "socket": socket.socket(),
+                "secure": True
+            },
+            "PortUUID2": {
+                "port": 9999,
+                "socket": socket.socket(),
+                "secure": False
+            }
+        }
+    }
+}
+
+{
+    "clientUUID1": {
+        "srvid": "serverUUID",
+        "port": "PortUUID1",
+    }
+}
+
+
+SERVER
+{
+    "proxyname": {
+        "master": socket.socket(),
+        "ports": {
+            "PortUUID1": {
+                "clientUUID1": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                },
+                "clientUUID2": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                }
+            },
+            "PortUUID2": {
+                "clientUUID3": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                },
+                "clientUUID4": {
+                    "client": socket.socket(),
+                    "server": socket.socket(),
+                }
+            }
+        },
+        "portmap": {
+            "PortUUID1": {
+                "port": 1234,
+                "secure": True
+            },
+            "PortUUID2": {
+                "port": 9999,
+                "secure": False
+            }
+        }
+    }
+}
+"""
