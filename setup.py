@@ -7,15 +7,8 @@ with open("README.md", "r") as fh:
 with open("PyPortForward/__main__.py", "r") as fh:
     version = re.search(r'__version__ = "(.*)"', fh.read()).group(1)
 
-
-install_requires = [
-    "flask",
-    "flask_cors",
-    "prompt_toolkit",
-    "Cx_Oracle",
-    "requests",
-    "pycryptodome",
-]
+with open("requirements.txt", "r") as fh:
+    install_requires = fh.read().splitlines()
 
 setuptools.setup(
     name="PyPortForward",

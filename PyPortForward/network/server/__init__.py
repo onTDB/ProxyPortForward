@@ -1,46 +1,36 @@
 import PyPortForward as ppf
 
-from .client import client_entry
-from .master import master_entry
 
-from threading import Thread
 import socket
 
-def proxy_accept(sock: socket.socket):
+from .master import master_entry
+from .client import client_entry
+
+def connect_proxy_entry(host: str, port: int, proxyid: str, typ: int, info: dict = {}) -> bool:
     """
-    Accept a socket connection
+    Open Master connection to proxy server.
     """
-    while True:
-        conn, conn_addr = sock.accept()
-        dt = str(conn.recv(1024))
-        if dt != "PROXY HELLO": 
-            ppf.logger.error(f"[{conn_addr}] Invalid HELLO connection")
-            conn.close()
-            continue
-        conn.send("CLIENT HELLO")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.connect((host, port))
+    except ConnectionRefusedError:
+        ppf.logger.error(f"Unable to connect to {host}:{port}")
+        return False
+    
+    sock.send("PROXY HELLO".encode())
+    dt = str(sock.recv(1024))
+    if dt != "CLIENT HELLO":
+        ppf.logger.error(f"Invalid HELLO connection")
+        return False
+    
+    sock.send(f"VERSION PyPortForward {ppf.__version__}".encode())
+    dt = str(sock.recv(1024))
+    if not dt.startswith("VERSION"):
+        ppf.logger.error(f"Invalid version")
+        return False
+    
+    if typ == ppf.types.MASTER:
+        return master_entry(sock, proxyid)
+    elif typ == ppf.types.CONNECTION:
+        return client_entry(sock, proxyid, info)
         
-        dt = str(conn.recv(1024))
-        if not dt.startswith("VERSION"):
-            ppf.logger.error(f"[{conn_addr}] Invalid version")
-            conn.close()
-            continue
-        clientver = dt.split(" ")[2]
-        conn.send(f"VERSION PyPortForward {ppf.__version__}")
-
-        dt = str(conn.recv(1024))
-        if not dt.startswith("MODE"):
-            ppf.logger.error(f"[{conn_addr}] Invalid mode")
-            conn.close()
-            continue
-        
-        mode = dt.split(" ")[1]
-        if mode.lower() == "master":
-            Thread(target=master_entry, args=(conn,)).start()
-        elif mode.lower() == "connection":
-            Thread(target=client_entry, args=(conn,)).start()
-        else:
-            ppf.logger.error(f"[{conn_addr}] Invalid mode")
-            conn.close()
-            continue
-
-

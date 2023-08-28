@@ -2,153 +2,111 @@ import PyPortForward as ppf
 
 from threading import Thread
 import socket
-import uuid
 
-from .master import send_new_connection
+def client_entry(sock: socket.socket, proxyid: str, info: dict):
+    # info = {
+    #    "portid": str,
+    #    "clientid": str,
+    # }
 
-newcon = {}
-bufferlen = 1024
-
-# SERVER ---> PROXY (OPEN/FIRST)
-def data_entry(conn: socket.socket):
-    conn_addr = conn.getpeername()
-
-    dt = str(conn.recv(1024))
-    if not dt.startswith("PASS"):
-        ppf.logger.error(f"[{conn_addr}] Unauthenticated connection")
-        conn.close()
-        return
-    
-    clientid = dt.split(" ")[1]
-
-    if clientid not in newcon:
-        ppf.logger.error(f"[{conn_addr}] Unauthenticated connection")
-        conn.close()
-        return
-
-    info = newcon.pop(clientid)
-    srvid = info["srvid"]
     portid = info["portid"]
+    clientid = info["clientid"]
 
-    ppf.connections[srvid]["ports"][portid][clientid]["server"] = conn
-
-# PROXY (OPEN/FIRST)
-def proxy_open_port(srvid: str, port: int, secure: bool):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    try:
-        sock.bind(("0.0.0.0", port))
-    except OSError:
-        ppf.logger.error(f"Unable to open port {port}")
+    sock.send("MODE CONNECTION".encode())
+    dt = str(sock.recv(1024))
+    if dt != "CHANGEMODE CONNECTION":
+        ppf.logger.error(f"Invalid mode")
+        sock.close()
         return False
     
-    sock.listen(5)
+    sock.send(f"PASS {clientid}")
+    dt = str(sock.recv(1024))
+    if dt != "PASS OK":
+        ppf.logger.error(f"Invalid password or Other ERROR")
+        sock.close()
+        return False
+    
+    origin_host = ppf.connections["proxyid"]["portmap"][portid]["host"]
+    origin_port = ppf.connections["proxyid"]["portmap"][portid]["port"]
 
-    portid = uuid.uuid4().hex
-    ppf.connections[srvid]["ports"][portid] = {}
-    ppf.connections[srvid]["portmap"][portid] = {
-        "port": port,
-        "sock": sock,
-        "secure": secure,
+    origin_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        origin_sock.connect((origin_host, origin_port))
+    except ConnectionRefusedError:
+        ppf.logger.error(f"Unable to connect to {origin_host}:{origin_port}")
+        sock.close()
+        return False
+    
+    ppf.connections[proxyid]["ports"][portid][clientid] = {
+        "client": sock,
+        "server": origin_sock,
     }
 
-    Thread(target=proxy_accept_client, args=(srvid, portid)).start()
-    return True
+    Thread(target=client_to_origin, args=(proxyid, portid, clientid)).start()
 
 
+def client_to_origin(proxyid: str, portid: str, clientid: str):
+    client = ppf.connections[proxyid]["ports"][portid][clientid]["client"]
+    server = ppf.connections[proxyid]["ports"][portid][clientid]["server"]
 
-# PROXY <--- CLIENT (DATA/FIRST)
-def proxy_accept_client(srvid: str, portid: str):
-    sock = ppf.connections[srvid]["portmap"][portid]
     while True:
-        conn, conn_addr = sock.accept()
-        clientid = uuid.uuid4().hex
-        
-        ppf.connections[srvid]["ports"][portid][clientid] = {
-            "client": conn,
-            "server": None,
-        }
-        
-        newcon[clientid] = {
-            "srvid": srvid,
-            "portid": portid,
-        }
-        
-        send_new_connection(srvid, portid, clientid)
-
-        Thread(target=server_to_client, args=(srvid, portid, clientid)).start()
-        Thread(target=client_to_server, args=(srvid, portid, clientid)).start()
-
-
-
-
-
-# SERVER <---> PROXY (DATA)
-def server_to_client(srvid: str, portid: str, clientid: str):
-    while True:
-        if ppf.connections[srvid]["ports"][portid][clientid]["server"] != None and ppf.connections[srvid]["ports"][portid][clientid]["client"] != None:
+        dt = client.recv(1024)
+        if not dt:
+            close_connection(proxyid, portid, clientid)
             break
-        
-    server = ppf.connections[srvid]["ports"][portid][clientid]["server"]
-    client = ppf.connections[srvid]["ports"][portid][clientid]["client"]
-    
-    while True:
-        data = server.recv(bufferlen)
-        if not data:
-            client.close()
-            break
-        client.send(data)
-    del(ppf.connections[srvid]["ports"][portid][clientid])
+        server.send(dt)
+    pass
 
-def client_to_server(srvid: str, portid: str, clientid: str):
-    while True:
-        if ppf.connections[srvid]["ports"][portid][clientid]["server"] != None and ppf.connections[srvid]["ports"][portid][clientid]["client"] != None:
-            break
+def origin_to_client(proxyid: str, portid: str, clientid: str):
+    client = ppf.connections[proxyid]["ports"][portid][clientid]["client"]
+    server = ppf.connections[proxyid]["ports"][portid][clientid]["server"]
 
-    server = ppf.connections[srvid]["ports"][portid][clientid]["server"]
-    client = ppf.connections[srvid]["ports"][portid][clientid]["client"]
-    
     while True:
-        data = client.recv(bufferlen)
-        if not data:
-            server.close()
+        dt = server.recv(1024)
+        if not dt:
+            close_connection(proxyid, portid, clientid)
             break
-        server.send(data)
-    del(ppf.connections[srvid]["ports"][portid][clientid])
+        client.send(dt)
+    pass
+
+def client_to_origin_secure(proxyid: str, portid: str, clientid: str):
+    client = ppf.connections[proxyid]["ports"][portid][clientid]["client"]
+    server = ppf.connections[proxyid]["ports"][portid][clientid]["server"]
+
+    cipher = ppf.connections[proxyid]["ports"][portid][clientid]["cipher"]
+
+    while True:
+        dt = client.recv(1024)
+        if not dt:
+            close_connection(proxyid, portid, clientid)
+            break
+        server.send(cipher.encrypt(dt))
+    pass
+
+def origin_to_client_secure(proxyid: str, portid: str, clientid: str):
+    client = ppf.connections[proxyid]["ports"][portid][clientid]["client"]
+    server = ppf.connections[proxyid]["ports"][portid][clientid]["server"]
+
+    cipher = ppf.connections[proxyid]["ports"][portid][clientid]["cipher"]
+
+    while True:
+        dt = server.recv(1024)
+        if not dt:
+            close_connection(proxyid, portid, clientid)
+            break
+        client.send(cipher.decrypt(dt))
+    pass
+
+def close_connection(proxyid: str, portid: str, clientid: str):
+    try:
+        ppf.connections[proxyid]["ports"][portid][clientid]["client"].close()
+    except:
+        pass
+    try:
+        ppf.connections[proxyid]["ports"][portid][clientid]["server"].close()
+    except:
+        pass
+
+    del ppf.connections[proxyid]["ports"][portid][clientid]
 
 
-# SERVER <---> PROXY (DATA/SECURE)
-def server_to_client_secure(srvid: str, portid: str, clientid: str):
-    while True:
-        if ppf.connections[srvid]["ports"][portid][clientid]["server"] != None and ppf.connections[srvid]["ports"][portid][clientid]["client"] != None:
-            break
-        
-    server = ppf.connections[srvid]["ports"][portid][clientid]["server"]
-    client = ppf.connections[srvid]["ports"][portid][clientid]["client"]
-    cipher = ppf.connections[srvid]["cipher"]
-    
-    while True:
-        data = cipher.decrypt(server.recv(bufferlen))
-        if not data:
-            client.close()
-            break
-        client.send(data)
-    del(ppf.connections[srvid]["ports"][portid][clientid])
-
-def client_to_server_secure(srvid: str, portid: str, clientid: str):
-    while True:
-        if ppf.connections[srvid]["ports"][portid][clientid]["server"] != None and ppf.connections[srvid]["ports"][portid][clientid]["client"] != None:
-            break
-
-    server = ppf.connections[srvid]["ports"][portid][clientid]["server"]
-    client = ppf.connections[srvid]["ports"][portid][clientid]["client"]
-    cipher = ppf.connections[srvid]["cipher"]
-    
-    while True:
-        data = client.recv(bufferlen)
-        if not data:
-            server.close()
-            break
-        server.send(cipher.encrypt(data))
-    del(ppf.connections[srvid]["ports"][portid][clientid])

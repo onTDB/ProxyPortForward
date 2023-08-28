@@ -1,9 +1,9 @@
 import PyPortForward as ppf
 
-from Cryptodome.Cipher import AES
-from Cryptodome.PublicKey import RSA
-from Cryptodome.Cipher import PKCS1_OAEP
-from Cryptodome.Random import get_random_bytes
+from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Random import get_random_bytes
 from base64 import b64encode, b64decode
 from pathlib import Path
 from json import dumps, loads
@@ -39,7 +39,7 @@ def new_connection_proxy(conn: socket.socket) -> AES:
     
     pubkey = RSA.import_key(dt["pubkey"])
     cipher = PKCS1_OAEP.new(pubkey)
-    key, iv, cipher = _new_cipher()
+    key, iv, aescipher = _new_cipher()
     dt = {
         "type": ppf.types.AES,
         "key": key,
@@ -47,7 +47,7 @@ def new_connection_proxy(conn: socket.socket) -> AES:
     }
     dt = cipher.encrypt(dumps(dt).encode())
     conn.send(dt)
-    return cipher
+    return aescipher
 
 def new_connection_server(conn: socket.socket) -> AES:
     privkey = RSA.generate(2048)

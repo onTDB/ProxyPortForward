@@ -23,6 +23,6 @@ connections = {}
 import PyPortForward.types
 import PyPortForward.commands
 import PyPortForward.network
-import PyPortForward.ports
+import PyPortForward.auth
 import PyPortForward.config
 
