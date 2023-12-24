@@ -1,12 +1,37 @@
 import PyPortForward as ppf
 
+
 from threading import Thread
 from json import loads, dumps
 import socket
 
 from .client import close_connection
+import PyPortForward.network.server as _server
 
 reqid = 0
+
+class ProxyConnection(_server.Connection):
+    def __init__(self, sock: socket.socket, proxyid: str):
+        super().__init__(sock, proxyid)
+    
+    def entry(self):
+        self.send(f"MODE MASTER".encode())
+        dt = str(self.recv(1024))
+        if dt != "CHANGEMODE MASTER":
+            ppf.logger.error(f"Invalid mode")
+            self.close()
+            return False
+        if dt.split(" ")[1].lower() != "master":
+            ppf.logger.error(f"Invalid mode")
+            self.close()
+            return False
+        
+        if not self.startencrypt():
+            return False
+        
+        self.send(f"PASS {ppf.config.servers[self.proxyid].passwd}")
+        
+        pass
 
 def master_entry(sock: socket.socket, proxyid: str) -> bool:
     sock.send(f"MODE MASTER".encode())

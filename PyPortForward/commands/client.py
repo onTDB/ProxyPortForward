@@ -2,12 +2,14 @@ import PyPortForward as ppf
 import PyPortForward.commands.client as _client
 
 from threading import Thread
+import code
 
 
 
 
 def client():
     while True:
+        code.interact(local=locals())
         a = ppf.commands.prompt(_client)
         print(a)
         try:

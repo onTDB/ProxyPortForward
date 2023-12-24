@@ -4,20 +4,23 @@ from json import loads
 import logging
 
 PROXY_DEFAULT_CONFIG = {
+    "name": "proxy1",
     "host": "proxy.example.com",
     "masterport": 5000,
-    "debug": False,
+    "dataport": 5001,
     "logfile": "",
-    "pass": "ANYPASSWORD",
+    "passwd": "ANYPASSWORD",
     "ports": {
         "start": 10000,
         "end": 50000,
-        "exclude": [25565],
-        "allow": [80],
+        "exclude": [12345],
+        "allow": [1023],
+        "multiallow": [80, 443, 25565],
     }
 }
 
 SERVER_DEFAULT_CONFIG = {
+    "name": "server1",
     "proxy": [
         {
             "proxyid": "proxy1",
@@ -41,6 +44,7 @@ SERVER_DEFAULT_CONFIG = {
         }
     ]
 }
+
 
 def load_config(configPath: Path):
     if not configPath.exists():

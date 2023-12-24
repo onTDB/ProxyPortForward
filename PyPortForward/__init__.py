@@ -14,7 +14,6 @@ logger.handlers[0].setFormatter(formatter)
 logger.setLevel(logging.INFO)
 
 host = ""
-port = 5000
 mode = "sock"
 passwd = ""
 connections = {}
@@ -25,4 +24,4 @@ import PyPortForward.commands
 import PyPortForward.network
 import PyPortForward.auth
 import PyPortForward.config
-
+import PyPortForward.structure
